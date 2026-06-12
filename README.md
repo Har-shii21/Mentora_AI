@@ -1,7 +1,9 @@
 🚀 Mentora AI – Career Constellation
 
 Team: CodePulse
+
 Members: M Harshitha, Prabha R
+
 Event: HackArena 2.0 Bangalore Zonals (June 2026)
 
 🌌 About
@@ -27,13 +29,6 @@ Mentora AI is an offline-first web application that helps students explore caree
 - Vanilla JavaScript
 - Canvas API
 - IndexedDB
-
-▶️ Run Locally
-
-1. Clone or download the project.
-2. Open "index.html" in any modern browser.
-3. Select a career goal.
-4. Complete stars in order and track your progress.
 
 📁 Files
 
