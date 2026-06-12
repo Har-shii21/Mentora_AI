@@ -1,21 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
   const canvas = document.getElementById("starCanvas");
-  const degreeSelect = document.getElementById("degree");
-  const fieldSelect = document.getElementById("field");
-  const levelSelect = document.getElementById("level");
+  const degreeSelect = document.getElementById("degreeSelect");
+  const fieldSelect = document.getElementById("fieldSelect");
+  const levelSelect = document.getElementById("levelSelect");
   const progressText = document.getElementById("progressText");
   const recList = document.getElementById("recList");
-  const generateButton =
-    document.getElementById("generateRoadmap") ||
-    Array.from(
-      document.querySelectorAll("button, input[type='button'], input[type='submit']")
-    ).find(function (element) {
-      return (
-        (element.textContent || element.value || "")
-          .trim()
-          .toLowerCase() === "generate roadmap"
-      );
-    });
+  const generateButton = document.getElementById("generateBtn");
 
   if (
     !canvas ||
