@@ -1,531 +1,551 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const canvas = document.getElementById("starCanvas");
-  const degreeSelect = document.getElementById("degreeSelect");
-  const fieldSelect = document.getElementById("fieldSelect");
-  const levelSelect = document.getElementById("levelSelect");
-  const progressText = document.getElementById("progressText");
-  const recList = document.getElementById("recList");
-  const generateButton = document.getElementById("generateBtn");
+(function backgroundStars(){
+  const canvas = document.getElementById('bg-stars');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let stars = [], shootingStars = [], w, h, dpr;
 
-  if (
-    !canvas ||
-    !canvas.getContext ||
-    !degreeSelect ||
-    !fieldSelect ||
-    !levelSelect ||
-    !progressText ||
-    !recList
-  ) {
-    return;
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = canvas.width = innerWidth * dpr;
+    h = canvas.height = innerHeight * dpr;
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    const count = Math.floor((innerWidth * innerHeight) / 4500);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random()*w, y: Math.random()*h,
+      r: Math.random()*1.4*dpr + 0.2*dpr,
+      a: Math.random()*0.8 + 0.2,
+      tw: Math.random()*0.02 + 0.005,
+      dir: Math.random()<.5?1:-1
+    }));
   }
 
-  canvas.width = 600;
-  canvas.height = 400;
+  function spawnShooting(){
+    if(Math.random() < 0.004 && shootingStars.length < 2){
+      shootingStars.push({
+        x: Math.random()*w*0.7,
+        y: Math.random()*h*0.4,
+        vx: (4 + Math.random()*3)*dpr,
+        vy: (2 + Math.random()*2)*dpr,
+        life: 1
+      });
+    }
+  }
 
-  const ctx = canvas.getContext("2d");
-  const starPositions = [
-    { x: 80, y: 70 },
-    { x: 180, y: 50 },
-    { x: 280, y: 90 },
-    { x: 380, y: 60 },
-    { x: 480, y: 100 },
-    { x: 520, y: 200 },
-    { x: 440, y: 280 },
-    { x: 320, y: 320 },
-    { x: 200, y: 300 },
-    { x: 80, y: 250 }
-  ];
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    // stars
+    for(const s of stars){
+      s.a += s.tw * s.dir;
+      if(s.a > 1 || s.a < 0.15) s.dir *= -1;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(220,225,255,${s.a})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // shooting
+    spawnShooting();
+    for(let i=shootingStars.length-1;i>=0;i--){
+      const s = shootingStars[i];
+      const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.vx*8, s.y - s.vy*8);
+      grad.addColorStop(0, `rgba(255,255,255,${s.life})`);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2*dpr;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx*8, s.y - s.vy*8);
+      ctx.stroke();
+      s.x += s.vx; s.y += s.vy; s.life -= 0.012;
+      if(s.life <= 0 || s.x > w || s.y > h) shootingStars.splice(i,1);
+    }
+    requestAnimationFrame(draw);
+  }
 
-  let starLabels = Array.from({ length: 10 }, function (_, index) {
-    return "Skill " + (index + 1);
+  addEventListener('resize', resize, {passive:true});
+  resize(); draw();
+})();
+
+/* ---------- IndexedDB persistence ---------- */
+const DB_NAME = 'mentora-ai';
+const STORE = 'state';
+const KEY = 'journey';
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function saveState(state){
+  try{
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(state, KEY);
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  }catch(e){ /* fallback */ localStorage.setItem('mentora-state', JSON.stringify(state)); }
+}
+async function loadState(){
+  try{
+    const db = await openDB();
+    return new Promise((res) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(KEY);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  }catch(e){
+    const raw = localStorage.getItem('mentora-state');
+    return raw ? JSON.parse(raw) : null;
+  }
+}
+async function clearState(){
+  try{
+    const db = await openDB();
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(KEY);
+  }catch(e){}
+  localStorage.removeItem('mentora-state');
+}
+
+/* ---------- Skill roadmaps ---------- */
+const ROADMAPS = {
+  'Frontend Developer': ['HTML Basics','CSS Mastery','JavaScript Core','Responsive Design','Git & GitHub','React Fundamentals','State Management','APIs & Fetch','Performance','Portfolio Launch'],
+  'Data Scientist':     ['Python Basics','NumPy & Pandas','Statistics','Data Viz','SQL','Machine Learning','Deep Learning','NLP','Big Data','Capstone Project'],
+  'AI Engineer':        ['Python','Linear Algebra','ML Foundations','Neural Networks','PyTorch','Transformers','LLMs','RAG Systems','MLOps','AI Product Build'],
+  'Product Designer':   ['Design Principles','Color & Type','Figma Mastery','User Research','Wireframing','Prototyping','Design Systems','Interaction Design','Portfolio','Case Study'],
+  'Mobile Developer':   ['UI Basics','Dart / Swift / Kotlin','Flutter / Native','State Mgmt','APIs','Local Storage','Animations','Testing','Publishing','First App Live'],
+  'Cybersecurity Analyst':['Networking','Linux Basics','Crypto Fundamentals','Threat Models','OWASP Top 10','Pen Testing','SIEM','Incident Response','Cloud Security','Certification']
+};
+const DEFAULT_SKILLS = ['Foundations','Core Concepts','Tooling','Practice 1','Intermediate','Practice 2','Advanced Topic','Real Project','Community','Showcase'];
+
+const MENTOR_LINES = [
+  "Welcome aboard. Tap your first star to ignite the journey.",
+  "Brilliant start. Momentum is everything.",
+  "Two down — your rocket is fueling up.",
+  "You're shaping the constellation. Keep going.",
+  "Halfway in spirit. Each star sharpens your craft.",
+  "Six stars lit — you're orbiting mastery.",
+  "Past the midpoint. The next leap is the biggest.",
+  "Eight bright stars. Graduation is in sight.",
+  "Almost there — one final push.",
+  "The last star awaits. Make it shine."
+];
+const TIPS = [
+  "Tip: revisit the previous star — repetition deepens skill.",
+  "Tip: build a tiny project applying what you just learned.",
+  "Tip: teach this concept to someone — the best test of mastery.",
+  "Tip: write notes in your own words.",
+  "Tip: pair this skill with a real-world challenge.",
+];
+
+/* ---------- Constellation app ---------- */
+const constellationCanvas = document.getElementById('constellation-canvas');
+if(constellationCanvas){
+  initConstellation();
+}
+
+function initConstellation(){
+  const canvas = constellationCanvas;
+  const ctx = canvas.getContext('2d');
+  let dpr = 1, W = 0, H = 0;
+
+  // State
+  let state = { goal: null, skills: [], completed: [], rocketsShown: [] };
+  let stars = []; // {x,y,label,index,glow}
+  let hoverIndex = -1;
+  let animTime = 0;
+
+  // DOM refs
+  const onboard = document.getElementById('onboard');
+  const goalLabel = document.getElementById('goal-label');
+  const ringFg = document.getElementById('ring-fg');
+  const progressCount = document.getElementById('progress-count');
+  const mentorMsg = document.getElementById('mentor-message');
+  const mentorTip = document.getElementById('mentor-tip');
+  const rocketModal = document.getElementById('rocket-modal');
+  const rocketMessage = document.getElementById('rocket-message');
+  const gradModal = document.getElementById('graduation-modal');
+  const resetBtn = document.getElementById('reset-btn');
+  const restartBtn = document.getElementById('restart-journey');
+
+  /* ----- Boot ----- */
+  (async () => {
+    const saved = await loadState();
+    if(saved && saved.goal){
+      state = Object.assign({rocketsShown:[]}, saved);
+      onboard.style.display = 'none';
+      buildStars();
+      updateUI();
+    }else{
+      onboard.style.display = 'grid';
+    }
+    resize();
+    render();
+  })();
+
+  /* ----- Onboarding ----- */
+  document.querySelectorAll('.goal-card').forEach(btn => {
+    btn.addEventListener('click', () => chooseGoal(btn.dataset.goal));
+  });
+  document.getElementById('custom-goal-btn').addEventListener('click', () => {
+    const v = document.getElementById('custom-goal-input').value.trim();
+    if(v) chooseGoal(v);
+  });
+  document.getElementById('custom-goal-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      const v = e.target.value.trim();
+      if(v) chooseGoal(v);
+    }
   });
 
-  let completed = Array(10).fill(false);
-  const rocketIndices = [0, 2, 4, 6, 8];
+  function chooseGoal(goal){
+    const skills = ROADMAPS[goal] || DEFAULT_SKILLS;
+    state = { goal, skills, completed: [], rocketsShown: [] };
+    saveState(state);
+    onboard.style.display = 'none';
+    buildStars();
+    updateUI();
+  }
 
-  let dbPromise = null;
-  let confettiTimeoutId = null;
-
-  function openDatabase() {
-    if (dbPromise) {
-      return dbPromise;
+  /* ----- Stars layout: gentle curved constellation path ----- */
+  function buildStars(){
+    stars = [];
+    const n = 10;
+    for(let i=0;i<n;i++){
+      stars.push({
+        index: i,
+        label: state.skills[i] || `Skill ${i+1}`,
+        nx: 0, ny: 0, // normalized 0..1
+        glow: 0
+      });
     }
+    layoutStars();
+  }
 
-    dbPromise = new Promise(function (resolve) {
-      if (!("indexedDB" in window)) {
-        resolve(null);
-        return;
+  function layoutStars(){
+    // Sinusoidal path across canvas
+    const n = stars.length;
+    for(let i=0;i<n;i++){
+      const t = i / (n - 1);
+      // slight horizontal serpentine
+      const nx = 0.08 + t * 0.84;
+      const ny = 0.5 + Math.sin(t * Math.PI * 2.2) * 0.28;
+      stars[i].nx = nx;
+      stars[i].ny = ny;
+    }
+  }
+
+  /* ----- Resize ----- */
+  function resize(){
+    const wrap = canvas.parentElement;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = wrap.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  addEventListener('resize', () => { resize(); }, {passive:true});
+
+  /* ----- Render loop ----- */
+  function render(){
+    animTime += 0.016;
+    ctx.clearRect(0,0,W,H);
+
+    // Connection lines
+    ctx.lineWidth = 1.2;
+    for(let i=0;i<stars.length-1;i++){
+      const a = stars[i], b = stars[i+1];
+      const ax = a.nx*W, ay = a.ny*H, bx = b.nx*W, by = b.ny*H;
+      const completed = state.completed.includes(i) && state.completed.includes(i+1);
+      const grad = ctx.createLinearGradient(ax, ay, bx, by);
+      if(completed){
+        grad.addColorStop(0, 'rgba(255, 209, 102, 0.7)');
+        grad.addColorStop(1, 'rgba(255, 183, 3, 0.7)');
+      }else{
+        grad.addColorStop(0, 'rgba(140,160,255,0.18)');
+        grad.addColorStop(1, 'rgba(140,160,255,0.05)');
       }
-
-      const request = indexedDB.open("MentoraDB", 1);
-
-      request.onupgradeneeded = function (event) {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains("progress")) {
-          db.createObjectStore("progress", { keyPath: "profileKey" });
-        }
-      };
-
-      request.onsuccess = function () {
-        resolve(request.result);
-      };
-
-      request.onerror = function () {
-        resolve(null);
-      };
-    });
-
-    return dbPromise;
-  }
-
-  function getProfileKey(degree, field, level) {
-    return degree + "_" + field + "_" + level;
-  }
-
-  async function saveCompleted(profileKey, completedArray) {
-    const db = await openDatabase();
-
-    if (!db || !profileKey) {
-      return false;
+      ctx.strokeStyle = grad;
+      ctx.setLineDash(completed ? [] : [4,6]);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
     }
+    ctx.setLineDash([]);
 
-    return new Promise(function (resolve) {
-      try {
-        const tx = db.transaction("progress", "readwrite");
-        const store = tx.objectStore("progress");
+    // Stars
+    for(let i=0;i<stars.length;i++){
+      const s = stars[i];
+      const x = s.nx*W, y = s.ny*H;
+      const done = state.completed.includes(i);
+      const target = done ? 1 : (hoverIndex === i ? 0.6 : 0);
+      s.glow += (target - s.glow) * 0.15;
 
-        store.put({
-          profileKey: profileKey,
-          completed: completedArray.slice(0, 10).map(Boolean)
-        });
+      const pulse = done ? (Math.sin(animTime*2 + i)*0.5 + 0.5) : 0;
+      const baseR = 9;
+      const r = baseR + pulse*2;
 
-        tx.oncomplete = function () {
-          resolve(true);
-        };
-
-        tx.onerror = function () {
-          resolve(false);
-        };
-      } catch (_error) {
-        resolve(false);
+      // Outer glow
+      const glowR = 38 + s.glow*22;
+      const gr = ctx.createRadialGradient(x,y,0, x,y,glowR);
+      if(done){
+        gr.addColorStop(0, 'rgba(255, 209, 102, 0.55)');
+        gr.addColorStop(0.4,'rgba(255, 183, 3, 0.25)');
+        gr.addColorStop(1, 'rgba(255, 183, 3, 0)');
+      }else{
+        gr.addColorStop(0, `rgba(124,92,255,${0.25 + s.glow*0.4})`);
+        gr.addColorStop(1, 'rgba(124,92,255,0)');
       }
-    });
-  }
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(x,y,glowR,0,Math.PI*2); ctx.fill();
 
-  async function loadCompleted(profileKey) {
-    const db = await openDatabase();
+      // Star body
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle = done ? '#ffd166' : '#e8ecff';
+      ctx.shadowColor = done ? '#ffb703' : '#7c5cff';
+      ctx.shadowBlur = done ? 24 : 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
 
-    if (!db || !profileKey) {
-      return null;
+      // Inner highlight
+      ctx.beginPath();
+      ctx.arc(x - r*0.3, y - r*0.3, r*0.4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fill();
+
+      // Label
+      ctx.font = '600 12px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const labelY = y + r + 10;
+      const text = s.label;
+      const tw = ctx.measureText(text).width;
+      // pill background
+      ctx.fillStyle = 'rgba(10, 12, 30, 0.7)';
+      const padX = 8, padY = 4;
+      roundRect(ctx, x - tw/2 - padX, labelY - padY, tw + padX*2, 22, 8);
+      ctx.fill();
+      ctx.strokeStyle = done ? 'rgba(255,209,102,0.5)' : 'rgba(140,160,255,0.25)';
+      ctx.stroke();
+
+      ctx.fillStyle = done ? '#ffd166' : '#e8ecff';
+      ctx.fillText(text, x, labelY);
+
+      // Number
+      ctx.font = '700 10px Inter, sans-serif';
+      ctx.fillStyle = done ? '#3a2400' : '#1a1b3a';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i+1), x, y);
     }
 
-    return new Promise(function (resolve) {
-      try {
-        const tx = db.transaction("progress", "readonly");
-        const store = tx.objectStore("progress");
-        const request = store.get(profileKey);
-
-        request.onsuccess = function () {
-          const saved = request.result && Array.isArray(request.result.completed)
-            ? request.result.completed.slice(0, 10).map(Boolean)
-            : null;
-
-          resolve(saved && saved.length === 10 ? saved : null);
-        };
-
-        request.onerror = function () {
-          resolve(null);
-        };
-      } catch (_error) {
-        resolve(null);
-      }
-    });
+    requestAnimationFrame(render);
   }
 
-  function getFallbackRoadmap(_degree, field, level) {
-    const skillPools = {
-      "AI/ML": [
-        "Python",
-        "Data Analysis",
-        "Machine Learning",
-        "Neural Networks",
-        "Deep Learning",
-        "NLP",
-        "Computer Vision",
-        "LLMs",
-        "AI Ethics",
-        "Model Deployment"
-      ],
-      "Frontend Development": [
-        "HTML5",
-        "CSS3",
-        "JavaScript",
-        "React",
-        "Tailwind",
-        "Git",
-        "Responsive Design",
-        "Web Performance",
-        "TypeScript",
-        "Next.js"
-      ],
-      "Full Stack": [
-        "HTML/CSS",
-        "JavaScript",
-        "React",
-        "Node.js",
-        "Express",
-        "MongoDB",
-        "SQL",
-        "REST APIs",
-        "Git",
-        "Docker"
-      ]
-    };
-
-    const selectedPool = skillPools[field] || skillPools["AI/ML"];
-
-    if (level === "beginner") {
-      return selectedPool.slice(0, 10);
-    }
-
-    return selectedPool.slice(0, 10);
-  }
-
-  function truncateLabel(label) {
-    return String(label || "").slice(0, 12);
-  }
-
-  function triggerConfetti() {
-    if (!recList) {
-      return;
-    }
-
-    const existing = document.getElementById("mentora-confetti-item");
-    if (existing) {
-      existing.remove();
-    }
-
-    if (confettiTimeoutId) {
-      clearTimeout(confettiTimeoutId);
-      confettiTimeoutId = null;
-    }
-
-    setTimeout(function () {
-      const li = document.createElement("li");
-      li.id = "mentora-confetti-item";
-      li.textContent = "🎉 CONGRATULATIONS! Constellation completed! 🎉";
-      recList.prepend(li);
-
-      confettiTimeoutId = window.setTimeout(function () {
-        const tempItem = document.getElementById("mentora-confetti-item");
-        if (tempItem) {
-          tempItem.remove();
-        }
-        confettiTimeoutId = null;
-      }, 5000);
-    }, 0);
-  }
-
-  function drawConstellation() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.save();
-    ctx.strokeStyle = "#ffdd9944";
-    ctx.lineWidth = 1.5;
-
+  function roundRect(ctx, x, y, w, h, r){
     ctx.beginPath();
-    ctx.moveTo(starPositions[0].x, starPositions[0].y);
-    for (let i = 1; i < starPositions.length; i += 1) {
-      ctx.lineTo(starPositions[i].x, starPositions[i].y);
-    }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(starPositions[4].x, starPositions[4].y);
-    ctx.lineTo(starPositions[5].x, starPositions[5].y);
-    ctx.moveTo(starPositions[9].x, starPositions[9].y);
-    ctx.lineTo(starPositions[0].x, starPositions[0].y);
-    ctx.stroke();
-    ctx.restore();
-
-    starPositions.forEach(function (star, index) {
-      ctx.save();
-
-      const gradient = ctx.createRadialGradient(
-        star.x - 4,
-        star.y - 4,
-        2,
-        star.x,
-        star.y,
-        14
-      );
-
-      if (completed[index]) {
-        gradient.addColorStop(0, "#FFD966");
-        gradient.addColorStop(1, "#FFA500");
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = "#FFD966";
-      } else {
-        gradient.addColorStop(0, "#B8B8B8");
-        gradient.addColorStop(1, "#6E6E6E");
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = "transparent";
-      }
-
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, 12, 0, Math.PI * 2);
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = completed[index] ? "#FFC000" : "#8A8A8A";
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.save();
-      ctx.font = "16px Arial, sans-serif";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("⭐", star.x - 8, star.y + 6);
-      ctx.restore();
-
-      ctx.save();
-      ctx.font = "12px Arial, sans-serif";
-      ctx.fillStyle = "#F9E7C3";
-      ctx.fillText(truncateLabel(starLabels[index]), star.x + 16, star.y - 14);
-      ctx.restore();
-    });
-
-    const rocketReady = rocketIndices.every(function (index) {
-      return completed[index];
-    });
-
-    if (rocketReady) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(300, 20);
-      ctx.lineTo(320, 70);
-      ctx.lineTo(280, 70);
-      ctx.closePath();
-      ctx.fillStyle = "#FFD8A8";
-      ctx.strokeStyle = "orange";
-      ctx.lineWidth = 2;
-      ctx.fill();
-      ctx.stroke();
-      ctx.font = "24px Arial, sans-serif";
-      ctx.fillStyle = "orange";
-      ctx.fillText("🚀", 295, 45);
-      ctx.restore();
-    }
-
-    if (completed.every(Boolean)) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(250, 340);
-      ctx.lineTo(300, 310);
-      ctx.lineTo(350, 340);
-      ctx.lineTo(300, 355);
-      ctx.closePath();
-      ctx.fillStyle = "gold";
-      ctx.strokeStyle = "#C09000";
-      ctx.lineWidth = 2;
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "gold";
-      ctx.fillRect(288, 298, 24, 10);
-      ctx.strokeRect(288, 298, 24, 10);
-      ctx.restore();
-
-      triggerConfetti();
-    }
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
   }
 
-  function updateRecommendations() {
-    const completedCount = completed.filter(Boolean).length;
-    const field = fieldSelect.value;
-
-    progressText.textContent =
-      "Progress: " + completedCount + "/10 skills completed";
-
-    const recommendationMap = {
-      "AI/ML": [
-        "Kaggle Competition",
-        "Build a Chatbot",
-        "Google AI Hackathon"
-      ],
-      "Frontend Development": [
-        "Frontend Mentor",
-        "Portfolio Project",
-        "Open Source Contribution"
-      ],
-      "Full Stack": [
-        "Fullstack Project",
-        "DevOps Hackathon",
-        "Freelance Gig"
-      ]
-    };
-
-    const recommendations = (recommendationMap[field] || recommendationMap["AI/ML"]).slice();
-
-    if (completedCount >= 5) {
-      recommendations.push("🔥 Rocket milestone – apply for internships!");
-    }
-
-    if (completedCount === 10) {
-      recommendations.push("🎓 GRADUATION READY – placement prep");
-    }
-
-    recList.innerHTML = "";
-
-    recommendations.forEach(function (item) {
-      const li = document.createElement("li");
-      li.textContent = item;
-      recList.appendChild(li);
-    });
-  }
-
-  function getCanvasCoordinates(event) {
+  /* ----- Interaction ----- */
+  function getEventPos(e){
     const rect = canvas.getBoundingClientRect();
-    const point =
-      (event.touches && event.touches[0]) ||
-      (event.changedTouches && event.changedTouches[0]) ||
-      event;
-
-    if (!point) {
-      return null;
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  }
+  function hitTest(pos){
+    for(let i=stars.length-1;i>=0;i--){
+      const s = stars[i];
+      const dx = pos.x - s.nx*W, dy = pos.y - s.ny*H;
+      if(dx*dx + dy*dy < 30*30) return i;
     }
+    return -1;
+  }
+  canvas.addEventListener('mousemove', e => {
+    hoverIndex = hitTest(getEventPos(e));
+    canvas.style.cursor = hoverIndex >= 0 ? 'pointer' : 'default';
+  });
+  canvas.addEventListener('mouseleave', () => hoverIndex = -1);
+  canvas.addEventListener('click', e => handleTap(getEventPos(e)));
+  canvas.addEventListener('touchend', e => {
+    if(e.changedTouches && e.changedTouches[0]){
+      const t = e.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+      handleTap({ x: t.clientX - rect.left, y: t.clientY - rect.top });
+    }
+  });
 
-    return {
-      x: ((point.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((point.clientY - rect.top) / rect.height) * canvas.height
-    };
+  function handleTap(pos){
+    const i = hitTest(pos);
+    if(i < 0) return;
+    if(state.completed.includes(i)){
+      // toggle off only if it's the latest, to keep order meaningful
+      const max = Math.max(...state.completed);
+      if(i === max){
+        state.completed = state.completed.filter(x => x !== i);
+        saveState(state); updateUI();
+      }
+      return;
+    }
+    // Must complete in order? Allow sequential only for nicer storytelling
+    // But be lenient: allow any if previous done OR it's the first remaining.
+    const next = nextSkillIndex();
+    if(i !== next){
+      flashMentor(`Light star #${next+1} first — "${stars[next].label}".`);
+      return;
+    }
+    state.completed.push(i);
+    state.completed.sort((a,b)=>a-b);
+    saveState(state);
+    updateUI({justCompleted: i});
   }
 
-  async function handleStarClick(index) {
-    if (completed[index]) {
-      alert("Already completed");
-      return;
-    }
-
-    const skillName = starLabels[index] || ("Skill " + (index + 1));
-    const shouldComplete = window.confirm(
-      skillName + "\n\nComplete this skill?"
-    );
-
-    if (!shouldComplete) {
-      return;
-    }
-
-    completed[index] = true;
-    drawConstellation();
-    updateRecommendations();
-    await saveCompleted(
-      getProfileKey(degreeSelect.value, fieldSelect.value, levelSelect.value),
-      completed
-    );
+  function nextSkillIndex(){
+    for(let i=0;i<10;i++) if(!state.completed.includes(i)) return i;
+    return 9;
   }
 
-  function handleCanvasInteraction(event) {
-    const coords = getCanvasCoordinates(event);
+  /* ----- UI update ----- */
+  function updateUI(opts = {}){
+    goalLabel.textContent = state.goal || '—';
+    const count = state.completed.length;
+    progressCount.textContent = `${count}/10`;
+    const circumference = 2 * Math.PI * 36;
+    const offset = circumference * (1 - count/10);
+    ringFg.style.strokeDasharray = circumference;
+    ringFg.style.strokeDashoffset = offset;
 
-    if (!coords) {
-      return;
+    // Mentor message
+    mentorMsg.textContent = MENTOR_LINES[count] || MENTOR_LINES[MENTOR_LINES.length-1];
+    if(count > 0 && count < 10){
+      const next = nextSkillIndex();
+      mentorTip.textContent = `Next up: ${stars[next].label}. ${TIPS[count % TIPS.length]}`;
+      mentorTip.classList.add('show');
+    }else if(count === 10){
+      mentorTip.textContent = "You've lit every star. Bask in the glow — you earned it.";
+      mentorTip.classList.add('show');
+    }else{
+      mentorTip.classList.remove('show');
     }
 
-    for (let i = 0; i < starPositions.length; i += 1) {
-      const star = starPositions[i];
-      const distance = Math.hypot(coords.x - star.x, coords.y - star.y);
-
-      if (distance < 20) {
-        handleStarClick(i);
-        break;
+    // Rocket milestones at completion counts 1,3,5,7,9 (i.e. after completing stars at indices 0,2,4,6,8)
+    if(opts.justCompleted !== undefined){
+      const idx = opts.justCompleted;
+      if([0,2,4,6,8].includes(idx) && !state.rocketsShown.includes(idx)){
+        state.rocketsShown.push(idx);
+        saveState(state);
+        showRocket(idx);
       }
     }
+
+    // Graduation
+    if(count === 10){
+      setTimeout(showGraduation, 600);
+    }
   }
 
-  async function loadRoadmap(degree, field, level) {
-    const selectedDegree = degree || degreeSelect.value || "BCA";
-    const selectedField = field || fieldSelect.value || "AI/ML";
-    const selectedLevel = level || levelSelect.value || "beginner";
-
-    if (
-      Array.from(degreeSelect.options).some(function (option) {
-        return option.value === selectedDegree;
-      })
-    ) {
-      degreeSelect.value = selectedDegree;
-    }
-
-    if (
-      Array.from(fieldSelect.options).some(function (option) {
-        return option.value === selectedField;
-      })
-    ) {
-      fieldSelect.value = selectedField;
-    }
-
-    if (
-      Array.from(levelSelect.options).some(function (option) {
-        return option.value === selectedLevel;
-      })
-    ) {
-      levelSelect.value = selectedLevel;
-    }
-
-    starLabels = getFallbackRoadmap(selectedDegree, selectedField, selectedLevel);
-    completed = Array(10).fill(false);
-
-    const profileKey = getProfileKey(selectedDegree, selectedField, selectedLevel);
-    const savedCompleted = await loadCompleted(profileKey);
-
-    if (savedCompleted) {
-      completed = savedCompleted.slice(0, 10);
-    }
-
-    drawConstellation();
-    updateRecommendations();
-    await saveCompleted(profileKey, completed);
+  function flashMentor(msg){
+    const original = mentorMsg.textContent;
+    mentorMsg.textContent = msg;
+    mentorMsg.style.color = 'var(--gold)';
+    setTimeout(() => {
+      mentorMsg.style.color = '';
+      mentorMsg.textContent = original;
+    }, 1800);
   }
 
-  canvas.addEventListener("click", handleCanvasInteraction);
+  /* ----- Rocket modal ----- */
+  function showRocket(idx){
+    const milestoneNum = [0,2,4,6,8].indexOf(idx) + 1;
+    rocketMessage.textContent = `Milestone ${milestoneNum} of 5 unlocked. ${5 - milestoneNum} rocket${5-milestoneNum===1?'':'s'} to go.`;
+    rocketModal.classList.remove('hidden');
+  }
 
-  canvas.addEventListener(
-    "touchstart",
-    function (event) {
-      event.preventDefault();
-      handleCanvasInteraction(event);
-    },
-    { passive: false }
-  );
+  /* ----- Graduation ----- */
+  function showGraduation(){
+    gradModal.classList.remove('hidden');
+    launchConfetti();
+  }
 
-  if (generateButton) {
-    generateButton.addEventListener("click", function () {
-      loadRoadmap(degreeSelect.value, fieldSelect.value, levelSelect.value);
+  /* ----- Confetti ----- */
+  function launchConfetti(){
+    const c = document.getElementById('confetti-canvas');
+    const cx = c.getContext('2d');
+    function size(){ c.width = c.offsetWidth; c.height = c.offsetHeight; }
+    size();
+    const colors = ['#ffd166','#7c5cff','#19d2ff','#ff5d8f','#b388ff','#fff'];
+    const pieces = Array.from({length: 160}, () => ({
+      x: c.width/2, y: c.height/3,
+      vx: (Math.random()-0.5)*10,
+      vy: Math.random()*-10 - 4,
+      g: 0.25 + Math.random()*0.15,
+      r: 3 + Math.random()*4,
+      rot: Math.random()*Math.PI,
+      vr: (Math.random()-0.5)*0.3,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      life: 1
+    }));
+    let frames = 0;
+    function step(){
+      cx.clearRect(0,0,c.width,c.height);
+      for(const p of pieces){
+        p.vy += p.g;
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        cx.save();
+        cx.translate(p.x, p.y); cx.rotate(p.rot);
+        cx.fillStyle = p.color;
+        cx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+        cx.restore();
+      }
+      frames++;
+      if(frames < 300 && !gradModal.classList.contains('hidden')) requestAnimationFrame(step);
+    }
+    step();
+  }
+
+  /* ----- Modal close ----- */
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.modal-overlay').classList.add('hidden');
     });
-  }
+  });
 
-  if (
-    Array.from(degreeSelect.options).some(function (option) {
-      return option.value === "BCA";
-    })
-  ) {
-    degreeSelect.value = "BCA";
-  }
+  /* ----- Reset / Restart ----- */
+  resetBtn?.addEventListener('click', async () => {
+    if(!confirm('Reset your journey? All progress will be lost.')) return;
+    await clearState();
+    state = { goal: null, skills: [], completed: [], rocketsShown: [] };
+    stars = [];
+    onboard.style.display = 'grid';
+    updateUIEmpty();
+  });
+  restartBtn?.addEventListener('click', async () => {
+    await clearState();
+    location.reload();
+  });
 
-  if (
-    Array.from(fieldSelect.options).some(function (option) {
-      return option.value === "AI/ML";
-    })
-  ) {
-    fieldSelect.value = "AI/ML";
+  function updateUIEmpty(){
+    goalLabel.textContent = '—';
+    progressCount.textContent = '0/10';
+    ringFg.style.strokeDashoffset = 2*Math.PI*36;
+    mentorMsg.textContent = 'Tap a star to begin lighting your path.';
+    mentorTip.classList.remove('show');
   }
-
-  if (
-    Array.from(levelSelect.options).some(function (option) {
-      return option.value === "beginner";
-    })
-  ) {
-    levelSelect.value = "beginner";
-  }
-
-  loadRoadmap("BCA", "AI/ML", "beginner");
-});
+}

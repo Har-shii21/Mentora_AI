@@ -1,54 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mentora AI – Generate</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Mentora AI — Your personalized career constellation guide. Map your journey, light up your stars." />
+<title>Mentora AI — Navigate Your Career Constellation</title>
+<link rel="stylesheet" href="style.css" />
 </head>
-<body>
-    <div class="container">
-        <header class="app-header">
-            <h1>Mentora AI</h1>
-            <span class="badge">Career Constellation</span>
-            <p class="tagline">Every student deserves to see their future light up.</p>
-        </header>
+<body class="landing">
+  <canvas id="bg-stars" aria-hidden="true"></canvas>
 
-        <section class="card">
-            <div class="form-group">
-                <select id="degreeSelect">
-                    <option value="BCA">BCA</option>
-                    <option value="B.Tech CSE">B.Tech CSE</option>
-                    <option value="B.Sc CS">B.Sc CS</option>
-                </select>
-                <select id="fieldSelect">
-                    <option value="AI/ML">AI/ML</option>
-                    <option value="Frontend Development">Frontend Development</option>
-                    <option value="Full Stack">Full Stack</option>
-                </select>
-                <select id="levelSelect">
-                    <option value="beginner">beginner</option>
-                    <option value="intermediate">intermediate</option>
-                </select>
-                <button type="button" id="generateBtn">✨ Generate Roadmap</button>
-            </div>
-        </section>
-    </div>
+  <header class="nav">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">✦</span>
+      <span class="logo-text">Mentora<span class="logo-accent">AI</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="constellation.html" class="btn btn-ghost">Launch</a>
+    </nav>
+  </header>
 
-    <script>
-        document.getElementById("generateBtn").addEventListener("click", function() {
-            const degree = document.getElementById("degreeSelect").value;
-            const field = document.getElementById("fieldSelect").value;
-            const level = document.getElementById("levelSelect").value;
-            
-            // Save selection to localStorage so the new page can read it
-            localStorage.setItem("mentora_degree", degree);
-            localStorage.setItem("mentora_field", field);
-            localStorage.setItem("mentora_level", level);
-            
-            // Open the constellation page in a new tab
-            window.open("constellation.html", "_blank");
-        });
-    </script>
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="badge">
+          <span class="pulse-dot"></span> HackArena 2.0 • Built for Dreamers
+        </div>
+        <h1 class="hero-title">
+          Your career,<br />
+          mapped across <span class="gradient-text">the stars</span>.
+        </h1>
+        <p class="hero-sub">
+          Mentora AI turns your goals into a living constellation. Light up skills, unlock rocket milestones, and reach graduation — all offline, all yours.
+        </p>
+        <div class="hero-cta">
+          <a href="constellation.html" class="btn btn-primary">
+            Launch Constellation <span class="arrow">→</span>
+          </a>
+          <a href="#how" class="btn btn-ghost">See how it works</a>
+        </div>
+
+        <div class="hero-stats">
+          <div><strong>10</strong><span>Skill Stars</span></div>
+          <div><strong>5</strong><span>Rocket Milestones</span></div>
+          <div><strong>∞</strong><span>Possible Paths</span></div>
+        </div>
+      </div>
+
+      <div class="hero-orbit" aria-hidden="true">
+        <div class="planet"></div>
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="moon"></div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <h2 class="section-title">Built like a <span class="gradient-text">spacecraft</span>.</h2>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon">★</div>
+          <h3>Living Constellation</h3>
+          <p>A full-screen interactive canvas of 10 skill stars personalized to your goal.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <h3>Rocket Milestones</h3>
+          <p>Hit checkpoints every two stars. Watch your rocket ignite and ascend.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>AI Mentor</h3>
+          <p>Contextual recommendations guide you to the next star — always.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🎓</div>
+          <h3>Graduation</h3>
+          <p>Complete all 10 stars and trigger a confetti-filled celebration.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">💾</div>
+          <h3>Offline-First</h3>
+          <p>IndexedDB persistence. Your journey survives reloads, crashes, and flights.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Mobile-First</h3>
+          <p>Designed thumb-first. Looks premium on phones, expands on laptops.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="how" class="how">
+      <h2 class="section-title">Three steps to <span class="gradient-text">liftoff</span>.</h2>
+      <ol class="steps">
+        <li><span>01</span><h3>Set your goal</h3><p>Tell Mentora where you want to land.</p></li>
+        <li><span>02</span><h3>Get your constellation</h3><p>A custom 10-star roadmap appears.</p></li>
+        <li><span>03</span><h3>Light it up</h3><p>Tap stars, earn rockets, graduate.</p></li>
+      </ol>
+      <div class="cta-final">
+        <a href="constellation.html" class="btn btn-primary btn-lg">Begin Your Journey →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Mentora AI · Crafted for HackArena 2.0</p>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>

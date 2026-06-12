@@ -1,57 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mentora AI – Your Constellation</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Hide form elements – only constellation visible */
-        .card, .form-group, .app-header .badge, .app-header .tagline {
-            display: none;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            padding-top: 20px;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .rec-box {
-            margin-top: 20px;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Your personal career constellation — light up skill stars and chart your journey." />
+<title>Your Constellation — Mentora AI</title>
+<link rel="stylesheet" href="style.css" />
 </head>
-<body>
-    <div class="container">
-        <h1>✨ Mentora AI – Your Career Constellation</h1>
-        
-        <section class="canvas-section">
-            <div class="canvas-container">
-                <canvas id="starCanvas" width="600" height="400"></canvas>
-            </div>
-        </section>
+<body class="constellation-page">
+  <canvas id="bg-stars" aria-hidden="true"></canvas>
 
-        <section class="rec-box">
-            <h2>🎯 Recommendations</h2>
-            <ul id="recList"></ul>
-            <div id="progressText">0 / 10 skills mastered</div>
-        </section>
+  <header class="nav nav-compact">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">✦</span>
+      <span class="logo-text">Mentora<span class="logo-accent">AI</span></span>
+    </a>
+    <div class="nav-actions">
+      <button id="reset-btn" class="btn btn-ghost btn-sm" title="Reset your journey">Reset</button>
     </div>
+  </header>
 
-    <script src="script.js"></script>
-    <script>
-        // On load, the script.js will read the stored values from localStorage
-        // We need to modify script.js to accept that. 
-        // Alternatively, we can set global variables before loading script.js
-        window.MentoraConfig = {
-            degree: localStorage.getItem("mentora_degree") || "BCA",
-            field: localStorage.getItem("mentora_field") || "AI/ML",
-            level: localStorage.getItem("mentora_level") || "beginner"
-        };
-    </script>
-    <!-- Note: script.js must be adapted to use window.MentoraConfig instead of dropdowns -->
+  <!-- Onboarding Modal -->
+  <div id="onboard" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal onboard-modal">
+      <h2>Where do you want to <span class="gradient-text">land</span>?</h2>
+      <p class="muted">Pick a destination — we'll chart your constellation.</p>
+      <div class="goal-grid" id="goal-grid">
+        <button class="goal-card" data-goal="Frontend Developer">💻<span>Frontend Developer</span></button>
+        <button class="goal-card" data-goal="Data Scientist">📊<span>Data Scientist</span></button>
+        <button class="goal-card" data-goal="AI Engineer">🤖<span>AI Engineer</span></button>
+        <button class="goal-card" data-goal="Product Designer">🎨<span>Product Designer</span></button>
+        <button class="goal-card" data-goal="Mobile Developer">📱<span>Mobile Developer</span></button>
+        <button class="goal-card" data-goal="Cybersecurity Analyst">🛡️<span>Cybersecurity</span></button>
+      </div>
+      <div class="custom-goal">
+        <input id="custom-goal-input" type="text" placeholder="Or type your own…" maxlength="40" />
+        <button id="custom-goal-btn" class="btn btn-primary">Chart it →</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="constellation-main">
+    <!-- HUD -->
+    <section class="hud">
+      <div class="hud-goal">
+        <span class="muted">Destination</span>
+        <h2 id="goal-label">—</h2>
+      </div>
+      <div class="hud-progress">
+        <svg class="progress-ring" width="84" height="84" viewBox="0 0 84 84">
+          <circle class="ring-bg" cx="42" cy="42" r="36" />
+          <circle id="ring-fg" class="ring-fg" cx="42" cy="42" r="36" />
+        </svg>
+        <div class="progress-text">
+          <strong id="progress-count">0/10</strong>
+          <span>Stars lit</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Canvas -->
+    <section class="canvas-wrap">
+      <canvas id="constellation-canvas"></canvas>
+    </section>
+
+    <!-- Mentor panel -->
+    <aside class="mentor-panel" id="mentor-panel">
+      <div class="mentor-header">
+        <span class="mentor-avatar">🧠</span>
+        <div>
+          <strong>AI Mentor</strong>
+          <span class="muted">Personalized for you</span>
+        </div>
+      </div>
+      <p id="mentor-message">Tap a star to begin lighting your path.</p>
+      <div class="mentor-tip" id="mentor-tip"></div>
+    </aside>
+  </main>
+
+  <!-- Rocket milestone modal -->
+  <div id="rocket-modal" class="modal-overlay hidden">
+    <div class="modal rocket-modal">
+      <div class="rocket-stage">
+        <div class="rocket">🚀</div>
+        <div class="flames"></div>
+      </div>
+      <h2>Milestone unlocked!</h2>
+      <p id="rocket-message" class="muted">Your rocket ignites — keep going.</p>
+      <button class="btn btn-primary" data-close-modal>Continue →</button>
+    </div>
+  </div>
+
+  <!-- Graduation modal -->
+  <div id="graduation-modal" class="modal-overlay hidden">
+    <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+    <div class="modal graduation-modal">
+      <div class="cap">🎓</div>
+      <h2 class="gradient-text">You graduated!</h2>
+      <p>Every star is lit. Your constellation shines complete — and so do you.</p>
+      <div class="grad-actions">
+        <button class="btn btn-primary" data-close-modal>Admire it ✨</button>
+        <button id="restart-journey" class="btn btn-ghost">Start a new journey</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
