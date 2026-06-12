@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mentora AI – Your Constellation</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Hide form elements – only constellation visible */
+        .card, .form-group, .app-header .badge, .app-header .tagline {
+            display: none;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .rec-box {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Mentora AI – Your Career Constellation</h1>
+        
+        <section class="canvas-section">
+            <div class="canvas-container">
+                <canvas id="starCanvas" width="600" height="400"></canvas>
+            </div>
+        </section>
+
+        <section class="rec-box">
+            <h2>🎯 Recommendations</h2>
+            <ul id="recList"></ul>
+            <div id="progressText">0 / 10 skills mastered</div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // On load, the script.js will read the stored values from localStorage
+        // We need to modify script.js to accept that. 
+        // Alternatively, we can set global variables before loading script.js
+        window.MentoraConfig = {
+            degree: localStorage.getItem("mentora_degree") || "BCA",
+            field: localStorage.getItem("mentora_field") || "AI/ML",
+            level: localStorage.getItem("mentora_level") || "beginner"
+        };
+    </script>
+    <!-- Note: script.js must be adapted to use window.MentoraConfig instead of dropdowns -->
+</body>
+</html>
