@@ -1,1 +1,60 @@
-html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentora AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <h1>Mentora AI</h1>
+      <span class="badge">Career Constellation</span>
+      <p class="tagline">Every student deserves to see their future light up.</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="form-group">
+          <select id="degreeSelect" name="degree">
+            <option value="">Select Degree</option>
+            <option value="BCA">BCA</option>
+            <option value="B.Tech CSE">B.Tech CSE</option>
+            <option value="B.Sc CS">B.Sc CS</option>
+          </select>
+
+          <select id="fieldSelect" name="field">
+            <option value="">Select Field</option>
+            <option value="AI/ML">AI/ML</option>
+            <option value="Frontend Development">Frontend Development</option>
+            <option value="Full Stack">Full Stack</option>
+          </select>
+
+          <select id="levelSelect" name="level">
+            <option value="">Select Level</option>
+            <option value="beginner">beginner</option>
+            <option value="intermediate">intermediate</option>
+          </select>
+
+          <button type="button" id="generateBtn">✨ Generate Roadmap</button>
+        </div>
+      </section>
+
+      <section class="canvas-section">
+        <div class="canvas-container">
+          <canvas id="starCanvas" width="600" height="400"></canvas>
+        </div>
+      </section>
+
+      <section class="rec-box">
+        <h2>🎯 Recommendations</h2>
+        <ul id="recList"></ul>
+        <div id="progressText">0 / 10 skills mastered</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
