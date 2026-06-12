@@ -1,9 +1,24 @@
+<<<<<<< HEAD
 (function backgroundStars(){
   const canvas = document.getElementById('bg-stars');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   let stars = [], shootingStars = [], w, h, dpr;
 
+=======
+/* =========================================================
+   Mentora AI — script.js
+   Background stars + Career Constellation + IndexedDB
+   ========================================================= */
+
+/* ---------- Background star canvas (both pages) ---------- */
+(function backgroundStars(){
+  const canvas = document.getElementById('bg-stars');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let stars = [], shootingStars = [], w, h, dpr;
+
+>>>>>>> cbf1214132c7b8e2c4a873c0daf82f370fa53b58
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = canvas.width = innerWidth * dpr;
@@ -548,4 +563,8 @@ function initConstellation(){
     mentorMsg.textContent = 'Tap a star to begin lighting your path.';
     mentorTip.classList.remove('show');
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> cbf1214132c7b8e2c4a873c0daf82f370fa53b58
